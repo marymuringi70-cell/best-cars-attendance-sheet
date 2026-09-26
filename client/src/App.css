@@ -1,0 +1,173 @@
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+}
+
+.attendance-card {
+  width: min(100%, 560px);
+  background: rgba(17, 24, 39, 0.9);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 24px;
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.38);
+  padding: 32px;
+  backdrop-filter: blur(12px);
+}
+
+.card-header {
+  margin-bottom: 24px;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 11px;
+  font-weight: 700;
+  color: #7dd3fc;
+}
+
+h1 {
+  margin: 0;
+  color: #f8fafc;
+  font-size: clamp(2rem, 3vw, 2.6rem);
+}
+
+.meta-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.meta-grid > div {
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 14px;
+  padding: 14px 12px;
+}
+
+.label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+}
+
+.meta-grid strong {
+  color: #e2e8f0;
+  font-size: 0.95rem;
+}
+
+.field-group {
+  margin-bottom: 18px;
+}
+
+.field-group label {
+  display: block;
+  margin-bottom: 8px;
+  color: #e2e8f0;
+  font-weight: 600;
+}
+
+.field-group input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.8);
+  color: #f8fafc;
+  padding: 14px 16px;
+  font-size: 1rem;
+}
+
+.field-group input:focus {
+  outline: 2px solid rgba(96, 165, 250, 0.8);
+  border-color: transparent;
+}
+
+.button-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.primary-button {
+  border: none;
+  border-radius: 12px;
+  padding: 14px 16px;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.18s ease, opacity 0.18s ease;
+}
+
+.primary-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.primary-button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.primary-button.success {
+  background: linear-gradient(135deg, #10b981, #34d399);
+  color: #052e16;
+}
+
+.primary-button.danger {
+  background: linear-gradient(135deg, #f97316, #fbbf24);
+  color: #431407;
+}
+
+.status-panel {
+  margin-top: 24px;
+  border-radius: 16px;
+  padding: 16px 18px;
+  border: 1px solid transparent;
+}
+
+.status-panel p {
+  margin: 0 0 6px;
+  font-weight: 600;
+}
+
+.status-panel small {
+  color: inherit;
+  opacity: 0.9;
+}
+
+.status-panel.info {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(96, 165, 250, 0.35);
+  color: #dbeafe;
+}
+
+.status-panel.success {
+  background: rgba(16, 185, 129, 0.14);
+  border-color: rgba(52, 211, 153, 0.35);
+  color: #d1fae5;
+}
+
+.status-panel.error {
+  background: rgba(239, 68, 68, 0.14);
+  border-color: rgba(248, 113, 113, 0.35);
+  color: #fee2e2;
+}
+
+@media (max-width: 640px) {
+  .attendance-card {
+    padding: 24px 18px;
+  }
+
+  .meta-grid,
+  .button-row {
+    grid-template-columns: 1fr;
+  }
+}
