@@ -6,7 +6,7 @@ const DEFAULT_OFFICE = {
   lng: 3.3792,
 }
 
-const ALERT_RADIUS_METERS = Number(import.meta.env.VITE_ALERT_RADIUS ?? 200)
+const ALERT_RADIUS_METERS = Number(import.meta.env.VITE_ALERT_RADIUS ?? 100)
 
 const toRadians = (value) => (value * Math.PI) / 180
 
