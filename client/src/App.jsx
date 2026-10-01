@@ -8,6 +8,43 @@ const DEFAULT_OFFICE = {
 
 const ALERT_RADIUS_METERS = Number(import.meta.env.VITE_ALERT_RADIUS ?? 100)
 
+// Helper function to get or generate persistent Device Fingerprint (UUID)
+const getDeviceId = () => {
+  let deviceId = localStorage.getItem('company_device_id')
+  if (!deviceId) {
+    const randomHex = Math.random().toString(36).substring(2, 8).toUpperCase()
+    deviceId = `DEV-${randomHex}`
+    localStorage.setItem('company_device_id', deviceId)
+  }
+  return deviceId
+}
+
+// Late Penalty Calculation Logic
+const calculateShiftPenalty = (selectedShift, now) => {
+  const currentHours = now.getHours()
+  const currentMinutes = now.getMinutes()
+
+  // Define target shift times (8:00 AM or 12:00 PM)
+  let targetHour = 8
+  if (selectedShift === 'afternoon') {
+    targetHour = 12
+  }
+
+  const targetTime = new Date(now)
+  targetTime.setHours(targetHour, 0, 0, 0)
+
+  let minutesLate = 0
+  let penaltyAmount = 0
+
+  if (now > targetTime) {
+    const diffMs = now - targetTime
+    minutesLate = Math.floor(diffMs / (1000 * 60))
+    penaltyAmount = minutesLate * 10 // KES 10 per minute late
+  }
+
+  return { minutesLate, penaltyAmount }
+}
+
 const toRadians = (value) => (value * Math.PI) / 180
 
 const calculateDistanceMeters = (lat1, lng1, lat2, lng2) => {
@@ -49,7 +86,6 @@ async function submitToSpreadsheet(record) {
     }
   }
 
-  // mode: 'no-cors' prevents browser CORS preflight errors with Google Apps Script
   await fetch(spreadsheetUrl, {
     method: 'POST',
     mode: 'no-cors',
@@ -64,8 +100,11 @@ async function submitToSpreadsheet(record) {
 
 function App() {
   const officeCoordinates = useMemo(() => getOfficeCoordinates(), [])
+  const deviceId = useMemo(() => getDeviceId(), [])
+  
   const [employeeName, setEmployeeName] = useState('')
   const [employeeId, setEmployeeId] = useState('')
+  const [selectedShift, setSelectedShift] = useState('morning') // 'morning' or 'afternoon'
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [distanceMeters, setDistanceMeters] = useState(null)
   const [message, setMessage] = useState('Ready to clock in or out.')
@@ -107,9 +146,20 @@ function App() {
         }
 
         const now = new Date()
+        
+        // Calculate late penalty (only applies when clocking in)
+        let penaltyData = { minutesLate: 0, penaltyAmount: 0 }
+        if (action === 'clock-in') {
+          penaltyData = calculateShiftPenalty(selectedShift, now)
+        }
+
         const record = {
           employeeName: trimmedName,
           employeeId: trimmedId,
+          deviceId: deviceId, // Persistent device fingerprint
+          shift: selectedShift === 'morning' ? 'Morning Shift (8:00 AM)' : 'Afternoon Shift (12:00 PM)',
+          minutesLate: penaltyData.minutesLate,
+          penaltyKes: penaltyData.penaltyAmount,
           action,
           timestamp: now.toISOString(),
           date: now.toLocaleDateString('en-CA'),
@@ -120,17 +170,19 @@ function App() {
           officeLongitude: officeCoordinates.lng,
           distanceMeters: Math.round(distance),
           verified: true,
-          status: 'Verified',
+          status: penaltyData.minutesLate > 0 ? `Late (${penaltyData.minutesLate} mins)` : 'On Time',
         }
 
         try {
           const result = await submitToSpreadsheet(record)
           setMessageType('success')
-          setMessage(
-            result.demoMode
-              ? result.message
-              : `Clock ${action.replace('-', ' ')} recorded successfully. Attendance was saved to the spreadsheet.`,
-          )
+          
+          let successText = `Clock ${action.replace('-', ' ')} recorded successfully.`
+          if (penaltyData.penaltyAmount > 0) {
+            successText += ` Note: You are ${penaltyData.minutesLate} min(s) late. Penalty: KES ${penaltyData.penaltyAmount}.`
+          }
+
+          setMessage(result.demoMode ? result.message : successText)
         } catch (error) {
           setMessageType('error')
           setMessage(error.message)
@@ -163,16 +215,12 @@ function App() {
 
         <div className="meta-grid">
           <div>
-            <span className="label">Office latitude</span>
-            <strong>{officeCoordinates.lat}</strong>
-          </div>
-          <div>
-            <span className="label">Office longitude</span>
-            <strong>{officeCoordinates.lng}</strong>
-          </div>
-          <div>
             <span className="label">Allowed radius</span>
             <strong>{ALERT_RADIUS_METERS} m</strong>
+          </div>
+          <div>
+            <span className="label">Device ID</span>
+            <strong>{deviceId}</strong>
           </div>
         </div>
 
@@ -194,6 +242,19 @@ function App() {
             onChange={(event) => setEmployeeId(event.target.value)}
             placeholder="EMP-1024"
           />
+        </div>
+
+        <div className="field-group">
+          <label htmlFor="shift-select">Select Shift</label>
+          <select
+            id="shift-select"
+            value={selectedShift}
+            onChange={(e) => setSelectedShift(e.target.value)}
+            className="shift-select"
+          >
+            <option value="morning">Morning Shift (8:00 AM)</option>
+            <option value="afternoon">Afternoon Shift (12:00 PM)</option>
+          </select>
         </div>
 
         <div className="button-row">
