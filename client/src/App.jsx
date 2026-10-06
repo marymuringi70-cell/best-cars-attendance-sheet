@@ -1,6 +1,26 @@
 import { useMemo, useState } from 'react'
 import './App.css'
 
+// 1. Define your small team list here
+const EMPLOYEES = [
+  { name: 'Harrison Irura', id: 'EMP-1001' },
+  { name: 'Gladys Mwangi', id: 'EMP-1002' },
+  { name: 'David Muchina', id: 'EMP-1003' },
+  { name: 'Simon Wagura', id: 'EMP-1004' },
+  { name: 'Mary Muringi', id: 'EMP-1005' },
+  { name: 'Stephanie Njeri', id: 'EMP-1006' },
+  { name: 'Stephen Muchiri', id: 'EMP-1007' },
+  { name: 'Alice Nyamakie', id: 'EMP-1008' },
+  { name: 'Sarah Karanja', id: 'EMP-1009' },
+  { name: 'Paulie Gitahi', id: 'EMP-1010' },
+  { name: 'Yvonne Njoroge', id: 'EMP-1011' },
+  { name: 'Stalla Kimani', id: 'EMP-1012' },
+  { name: 'Jedida ', id: 'EMP-1013' },
+  { name: 'Joel Ndiritu', id: 'EMP-1014' },
+  { name: 'Diana Gesare', id: 'EMP-1015' },
+  { name: 'Patrick Kinyua', id: 'EMP-1016' }
+]
+
 const DEFAULT_OFFICE = {
   lat: 6.5244,
   lng: 3.3792,
@@ -8,7 +28,6 @@ const DEFAULT_OFFICE = {
 
 const ALERT_RADIUS_METERS = Number(import.meta.env.VITE_ALERT_RADIUS ?? 100)
 
-// Helper function to get or generate persistent Device Fingerprint (UUID)
 const getDeviceId = () => {
   let deviceId = localStorage.getItem('company_device_id')
   if (!deviceId) {
@@ -19,12 +38,7 @@ const getDeviceId = () => {
   return deviceId
 }
 
-// Late Penalty Calculation Logic
 const calculateShiftPenalty = (selectedShift, now) => {
-  const currentHours = now.getHours()
-  const currentMinutes = now.getMinutes()
-
-  // Define target shift times (8:00 AM or 12:00 PM)
   let targetHour = 8
   if (selectedShift === 'afternoon') {
     targetHour = 12
@@ -39,7 +53,7 @@ const calculateShiftPenalty = (selectedShift, now) => {
   if (now > targetTime) {
     const diffMs = now - targetTime
     minutesLate = Math.floor(diffMs / (1000 * 60))
-    penaltyAmount = minutesLate * 10 // KES 10 per minute late
+    penaltyAmount = minutesLate * 10
   }
 
   return { minutesLate, penaltyAmount }
@@ -102,24 +116,17 @@ function App() {
   const officeCoordinates = useMemo(() => getOfficeCoordinates(), [])
   const deviceId = useMemo(() => getDeviceId(), [])
   
-  const [employeeName, setEmployeeName] = useState('')
-  const [employeeId, setEmployeeId] = useState('')
-  const [selectedShift, setSelectedShift] = useState('morning') // 'morning' or 'afternoon'
+  // Default selection to the first employee in the list
+  const [selectedEmployeeIndex, setSelectedEmployeeIndex] = useState(0)
+  const [selectedShift, setSelectedShift] = useState('morning')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [distanceMeters, setDistanceMeters] = useState(null)
   const [message, setMessage] = useState('Ready to clock in or out.')
   const [messageType, setMessageType] = useState('info')
 
+  const activeEmployee = EMPLOYEES[selectedEmployeeIndex]
+
   const handleClockAction = (action) => {
-    const trimmedName = employeeName.trim()
-    const trimmedId = employeeId.trim()
-
-    if (!trimmedName || !trimmedId) {
-      setMessageType('error')
-      setMessage('Please enter both the employee name and employee ID.')
-      return
-    }
-
     setIsSubmitting(true)
     setMessageType('info')
     setMessage('Requesting GPS access...')
@@ -147,16 +154,15 @@ function App() {
 
         const now = new Date()
         
-        // Calculate late penalty (only applies when clocking in)
         let penaltyData = { minutesLate: 0, penaltyAmount: 0 }
         if (action === 'clock-in') {
           penaltyData = calculateShiftPenalty(selectedShift, now)
         }
 
         const record = {
-          employeeName: trimmedName,
-          employeeId: trimmedId,
-          deviceId: deviceId, // Persistent device fingerprint
+          employeeName: activeEmployee.name,
+          employeeId: activeEmployee.id,
+          deviceId: deviceId,
           shift: selectedShift === 'morning' ? 'Morning Shift (8:00 AM)' : 'Afternoon Shift (12:00 PM)',
           minutesLate: penaltyData.minutesLate,
           penaltyKes: penaltyData.penaltyAmount,
@@ -177,9 +183,9 @@ function App() {
           const result = await submitToSpreadsheet(record)
           setMessageType('success')
           
-          let successText = `Clock ${action.replace('-', ' ')} recorded successfully.`
+          let successText = `Clock ${action.replace('-', ' ')} recorded for ${activeEmployee.name}.`
           if (penaltyData.penaltyAmount > 0) {
-            successText += ` Note: You are ${penaltyData.minutesLate} min(s) late. Penalty: KES ${penaltyData.penaltyAmount}.`
+            successText += ` Late Penalty: KES ${penaltyData.penaltyAmount}.`
           }
 
           setMessage(result.demoMode ? result.message : successText)
@@ -224,26 +230,24 @@ function App() {
           </div>
         </div>
 
+        {/* Dropdown for Employees */}
         <div className="field-group">
-          <label htmlFor="employee-name">Employee name</label>
-          <input
-            id="employee-name"
-            value={employeeName}
-            onChange={(event) => setEmployeeName(event.target.value)}
-            placeholder="Jane Doe"
-          />
+          <label htmlFor="employee-select">Select Employee</label>
+          <select
+            id="employee-select"
+            value={selectedEmployeeIndex}
+            onChange={(e) => setSelectedEmployeeIndex(Number(e.target.value))}
+            className="shift-select"
+          >
+            {EMPLOYEES.map((emp, index) => (
+              <option key={emp.id} value={index}>
+                {emp.name} ({emp.id})
+              </option>
+            ))}
+          </select>
         </div>
 
-        <div className="field-group">
-          <label htmlFor="employee-id">Employee ID</label>
-          <input
-            id="employee-id"
-            value={employeeId}
-            onChange={(event) => setEmployeeId(event.target.value)}
-            placeholder="EMP-1024"
-          />
-        </div>
-
+        {/* Dropdown for Shift */}
         <div className="field-group">
           <label htmlFor="shift-select">Select Shift</label>
           <select
